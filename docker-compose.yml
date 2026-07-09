@@ -1,0 +1,28 @@
+# Jalankan backend + frontend via Docker (tanpa perlu install Python/Node manual).
+#   1) Isi backend/.env (GEMINI_API_KEY, model)
+#   2) docker compose up
+#   3) Buka http://127.0.0.1:3000
+#
+# Catatan: image install dependency saat pertama start, jadi start awal agak lama.
+services:
+  backend:
+    image: python:3.11-slim
+    working_dir: /app/backend
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+
+  frontend:
+    image: node:20
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+    volumes:
+      - ./:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend

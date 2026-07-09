@@ -1,5 +1,16 @@
 # Catatan Perubahan Project
 
+## Revisi 3.1 (tambahan)
+
+- **Skrip sekali-jalan**: `run.bat` (Windows) & `run.sh` (Mac/Linux) menyalakan backend
+  (`http://127.0.0.1:8000`) + frontend (`http://127.0.0.1:3000`) sekaligus. Kalau `backend/.env`
+  belum ada, otomatis dibuat dari `.env.example` (isi GEMINI_API_KEY dulu).
+- **`docker-compose.yml`**: alternatif jalan via Docker tanpa install Python/Node manual
+  (`docker compose up`).
+- **Progress bar generate konten**: tiap tombol (Media Visual / Caption / Deskripsi) kini
+  menampilkan bar persentase + label tahapan saat proses berjalan, dan berubah hijau "Selesai"
+  begitu kelar (atau "Gagal" bila error).
+
 ## Revisi 3 (perbaikan sesuai permintaan)
 
 ### 1. Topik — query bisa di-edit

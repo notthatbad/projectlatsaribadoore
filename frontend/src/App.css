@@ -522,6 +522,34 @@ details ul {
 .step-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .generated-preview h4 { margin-bottom: 6px; }
 
+/* --- Progress bar generate konten --- */
+.progress-wrap { margin-top: 10px; }
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+.progress-name { color: var(--muted); }
+.progress-pct { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(3, 8, 22, 0.7);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  box-shadow: 0 0 12px rgba(77, 225, 255, 0.5);
+  transition: width 0.28s ease;
+}
+.progress-fill.done { background: linear-gradient(90deg, var(--success), var(--accent)); }
+
 @media (max-width: 860px) {
   .dashboard-grid,
   .form-grid {

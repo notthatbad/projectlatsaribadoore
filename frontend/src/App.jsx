@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 const API_URL = 'http://127.0.0.1:8000';
@@ -49,6 +49,66 @@ function App() {
   const [generatingVisual, setGeneratingVisual] = useState(false);
   const [generatingCaption, setGeneratingCaption] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+
+  // --- progress bar per proses generate ---
+  const [progress, setProgress] = useState({ visual: 0, caption: 0, description: 0 });
+  const [progressStage, setProgressStage] = useState({ visual: '', caption: '', description: '' });
+  const progressTimers = useRef({});
+
+  const PROGRESS_STAGES = {
+    visual: [
+      [0, 'Menyusun brief visual dari hasil analisis...'],
+      [40, 'Mengirim ke model gambar & merender...'],
+      [75, 'Menyelesaikan gambar...'],
+    ],
+    caption: [
+      [0, 'Menyiapkan konteks analisis...'],
+      [45, 'Menulis variasi caption...'],
+    ],
+    description: [
+      [0, 'Membaca visual & analisis...'],
+      [50, 'Menulis deskripsi penjelas...'],
+    ],
+  };
+
+  const stageFor = (key, value) => {
+    const stages = PROGRESS_STAGES[key] || [];
+    let label = '';
+    for (const [threshold, text] of stages) {
+      if (value >= threshold) label = text;
+    }
+    return label;
+  };
+
+  const startProgress = (key) => {
+    clearInterval(progressTimers.current[key]);
+    setProgress((p) => ({ ...p, [key]: 5 }));
+    setProgressStage((s) => ({ ...s, [key]: stageFor(key, 5) }));
+    progressTimers.current[key] = setInterval(() => {
+      setProgress((p) => {
+        const cur = p[key];
+        if (cur >= 92) return p;
+        const inc = cur < 40 ? 3.5 : cur < 70 ? 1.6 : 0.7; // melambat saat mendekati akhir
+        const next = Math.min(92, cur + inc);
+        setProgressStage((s) => ({ ...s, [key]: stageFor(key, next) }));
+        return { ...p, [key]: next };
+      });
+    }, 280);
+  };
+
+  const finishProgress = (key, ok = true) => {
+    clearInterval(progressTimers.current[key]);
+    setProgress((p) => ({ ...p, [key]: 100 }));
+    setProgressStage((s) => ({ ...s, [key]: ok ? 'Selesai ✔' : 'Gagal' }));
+    setTimeout(() => {
+      setProgress((p) => ({ ...p, [key]: 0 }));
+      setProgressStage((s) => ({ ...s, [key]: '' }));
+    }, 900);
+  };
+
+  useEffect(() => () => {
+    Object.values(progressTimers.current).forEach(clearInterval);
+  }, []);
 
   const loadData = async () => {
     const [topicsRes, contentRes] = await Promise.all([
@@ -198,6 +258,8 @@ function App() {
     }
     setGeneratingVisual(true);
     setMessage('');
+    startProgress('visual');
+    let visualOk = false;
     try {
       const res = await fetch(`${API_URL}/content/visual`, {
         method: 'POST',
@@ -223,8 +285,10 @@ function App() {
       } else {
         setMessage('Media visual (gambar) berhasil dibuat.');
       }
+      visualOk = !data.image_error;
       loadData();
     } finally {
+      finishProgress('visual', visualOk);
       setGeneratingVisual(false);
     }
   };
@@ -241,6 +305,8 @@ function App() {
     }
     setGeneratingCaption(true);
     setMessage('');
+    startProgress('caption');
+    let captionOk = false;
     try {
       const normalizedCommentCount = Math.min(100, Math.max(1, Number(jumlahKomentar) || 1));
       const res = await fetch(`${API_URL}/content/caption`, {
@@ -260,8 +326,10 @@ function App() {
       }
       setCurrentCaptions(data.captions);
       setMessage('Caption berhasil dibuat.');
+      captionOk = true;
       loadData();
     } finally {
+      finishProgress('caption', captionOk);
       setGeneratingCaption(false);
     }
   };
@@ -274,6 +342,8 @@ function App() {
     }
     setGeneratingDescription(true);
     setMessage('');
+    startProgress('description');
+    let descOk = false;
     try {
       const res = await fetch(`${API_URL}/content/description`, {
         method: 'POST',
@@ -287,8 +357,10 @@ function App() {
       }
       setCurrentDescription(data.description);
       setMessage('Deskripsi penjelas berhasil dibuat.');
+      descOk = true;
       loadData();
     } finally {
+      finishProgress('description', descOk);
       setGeneratingDescription(false);
     }
   };
@@ -673,6 +745,26 @@ function App() {
                       {generatingDescription ? 'Membuat deskripsi...' : '3) 📝 Generate Deskripsi Penjelas'}
                     </button>
                   </div>
+
+                  {['visual', 'caption', 'description'].map((key) =>
+                    progress[key] > 0 ? (
+                      <div key={key} className="progress-wrap">
+                        <div className="progress-head">
+                          <span className="progress-name">
+                            {key === 'visual' ? '🖼️ Media Visual' : key === 'caption' ? '💬 Caption' : '📝 Deskripsi'}
+                            {progressStage[key] ? ` — ${progressStage[key]}` : ''}
+                          </span>
+                          <span className="progress-pct">{Math.round(progress[key])}%</span>
+                        </div>
+                        <div className="progress-track">
+                          <div
+                            className={`progress-fill ${progress[key] >= 100 ? 'done' : ''}`}
+                            style={{ width: `${progress[key]}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : null
+                  )}
 
                   {(currentVisual || currentCaptions || currentDescription) && (
                     <div className="generated-preview">
