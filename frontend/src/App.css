@@ -514,6 +514,10 @@ details ul {
 .tight-list { margin: 0; padding-left: 18px; }
 .tight-list li { margin-bottom: 4px; }
 .prewrap { white-space: pre-wrap; }
+.escalation-table td { min-width: 120px; }
+.esc-def-cell { min-width: 240px; }
+.esc-tindakan { margin: 6px 0 4px; font-size: 12px; color: var(--text); }
+.esc-definisi { margin: 0; font-size: 12px; color: var(--muted); }
 .analysis-card-kontra { border-left: 3px solid var(--accent-2); }
 
 /* --- Tombol bertahap generate konten --- */

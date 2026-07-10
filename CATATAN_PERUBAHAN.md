@@ -1,5 +1,20 @@
 # Catatan Perubahan Project
 
+## Revisi 3.2 — Analisis pakai system prompt INSTRUKSI
+
+- Prompt analisis sekarang **persis** memakai system prompt yang diminta: ROLE (pranata humas
+  senior), TUGAS 4 langkah, ATURAN_PENULISAN_ARTIKEL, dan FRAMEWORK_ESKALASI lengkap
+  (tindakan + definisi + karakteristik tiap tahap). "File berita" yang dianalisis diambil dari
+  **judul + URL hasil crawling/berita terpilih di tab Topik/Cari Berita** — model menganalisis sendiri.
+- Output dirender sebagai **TABEL 3 kolom** sesuai FORMAT_OUTPUT: `TAHAP & DEFINISI ESKALASI |
+  ARTIKEL | SARAN INFORMASI`, **selalu 5 baris** (satu per tahap, VERY LOW→VERY HIGH). Kolom
+  TAHAP & DEFINISI diisi teks baku SOP dari `LEVEL_DEFINITIONS` (server-side, tidak dikarang model);
+  kolom ARTIKEL & SARAN INFORMASI diisi hasil klasifikasi model.
+- Di bawah tabel muncul **artikel kontra opini** untuk tahap tertinggi (judul head-to-head bombastis,
+  isi paragraf mengalir tanpa bullet) sesuai ATURAN_PENULISAN_ARTIKEL.
+- Model diminta balas JSON (`classification` per tahap + `kontra_opini`) supaya rapi dirender;
+  isi tabel dijamin 5 baris & seluruh judul terklasifikasi. Fallback rule-based tetap ada.
+
 ## Revisi 3.1 (tambahan)
 
 - **Skrip sekali-jalan**: `run.bat` (Windows) & `run.sh` (Mac/Linux) menyalakan backend

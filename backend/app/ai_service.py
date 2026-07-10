@@ -53,39 +53,80 @@ _gemini_client = None
 
 
 # ---------------------------------------------------------------------------
-# Kerangka TAHAP & DEFINISI ESKALASI (diambil dari SOP monitoring pemberitaan).
-# Dipakai sebagai konteks prompt analisis supaya output terstruktur & seragam.
+# Kerangka TAHAP & DEFINISI ESKALASI (SOP monitoring pemberitaan).
+# LEVEL_DEFINITIONS = teks baku (tindakan + definisi) yang diisi server-side ke
+# kolom "TAHAP & DEFINISI ESKALASI" — biar isinya persis SOP dan tidak dikarang model.
 # ---------------------------------------------------------------------------
+LEVEL_DEFINITIONS = {
+    "VERY LOW": {
+        "tindakan": "Pencatatan pasif ke dalam sistem log pemantauan. Tidak diperlukan respons komunikasi aktif.",
+        "definisi": (
+            "Pemberitaan bersifat minimal, terisolasi, dan tidak menunjukkan potensi penyebaran yang "
+            "signifikan. Isu belum membentuk narasi yang koheren atau terstruktur. Tidak ada indikasi "
+            "mobilisasi opini publik maupun perhatian media arus utama."
+        ),
+    },
+    "LOW": {
+        "tindakan": "Aktivasi sistem peringatan internal, penyiapan FAQ dan narasi tandingan dasar, penugasan tim pemantauan terjadwal.",
+        "definisi": (
+            "Pemberitaan mulai menunjukkan pola awal yang patut diwaspadai. Isu mulai mendapat perhatian "
+            "dari beberapa kanal secara bersamaan meskipun belum viral. Terdapat potensi eskalasi jika "
+            "tidak dipantau secara terstruktur."
+        ),
+    },
+    "MEDIUM": {
+        "tindakan": "Pemantauan berkala terjadwal (harian), penerbitan klarifikasi resmi melalui kanal komunikasi pemerintah yang tepat, koordinasi antar unit humas.",
+        "definisi": (
+            "Isu telah berkembang menjadi perbincangan publik yang terukur. Narasi keliru atau disinformasi "
+            "mulai mendapat traksi dan berpotensi membentuk persepsi publik secara lebih luas jika tidak "
+            "segera direspons dengan klarifikasi yang tepat sasaran."
+        ),
+    },
+    "HIGH": {
+        "tindakan": "Respons reaktif terbatas melalui pernyataan resmi, konferensi pers terjadwal, atau siaran pers yang menjawab poin-poin spesifik. Koordinasi dengan pimpinan instansi.",
+        "definisi": (
+            "Isu telah menjadi perbincangan publik yang luas dan mendapat perhatian media arus utama. Narasi "
+            "yang berkembang berpotensi merusak kepercayaan publik terhadap program atau institusi secara "
+            "nyata. Diperlukan respons resmi yang terukur dan terkontrol."
+        ),
+    },
+    "VERY HIGH": {
+        "tindakan": "Peluncuran strategi counter-campaign terstruktur: narasi tandingan komprehensif, mobilisasi juru bicara dan mitra komunikasi, kampanye edukasi publik multi-kanal, serta koordinasi lintas kementerian/lembaga jika diperlukan.",
+        "definisi": (
+            "Situasi telah mencapai tingkat krisis komunikasi. Isu membentuk narasi dominan yang merusak "
+            "reputasi institusi secara sistemik, berpotensi mengganggu implementasi program, dan/atau memicu "
+            "tekanan publik, sosial, maupun politik secara terorganisir. Diperlukan intervensi komunikasi "
+            "yang terstruktur, masif, dan multi-kanal."
+        ),
+    },
+}
+
+# Kerangka lengkap (tindakan + definisi + karakteristik) — dipakai di dalam prompt
+# sebagai DATA REFERENSI untuk klasifikasi (Langkah 2).
 ESCALATION_FRAMEWORK = """
-KERANGKA TAHAP & DEFINISI ESKALASI (5 tingkat):
+<FRAMEWORK_ESKALASI>
+Catatan: blok ini DATA REFERENSI untuk klasifikasi. Kolom ARTIKEL & SARAN INFORMASI wajib diisi model.
 
-VERY LOW — Pencatatan pasif ke sistem log. Tidak perlu respons komunikasi aktif.
-  Pemberitaan minimal & terisolasi (1-3 artikel), sumber low-reach/non-mainstream,
-  tidak ada pengulangan framing, engagement nyaris nihil, sentimen netral, tidak ada
-  figur berpengaruh, isu lokal tanpa resonansi lebih besar.
+[VERY LOW] Tindakan: Pencatatan pasif ke sistem log. Tidak perlu respons aktif.
+  Definisi: Pemberitaan minimal, terisolasi, tidak berpotensi menyebar. Isu belum membentuk narasi koheren; tidak ada mobilisasi opini/perhatian media arus utama.
+  Karakteristik: volume 1-3 artikel; sumber low-reach/non-mainstream; tidak ada pengulangan framing; engagement nyaris nihil; sentimen netral/pertanyaan informatif; tidak ada figur berpengaruh; isu lokal tanpa resonansi.
 
-LOW — Aktivasi peringatan internal, siapkan FAQ & narasi tandingan dasar, tim
-  pemantau terjadwal. Volume moderat (4-10 artikel), mulai cross-platform, muncul
-  kesamaan framing/terminologi, engagement rendah-sedang, sentimen bergeser negatif/
-  kritis, mulai ada misinformasi ringan, belum ada amplifikasi mainstream/tokoh.
+[LOW] Tindakan: Aktivasi peringatan internal, siapkan FAQ & narasi tandingan dasar, tim pemantau terjadwal.
+  Definisi: Pola awal yang patut diwaspadai. Isu mulai diperhatikan beberapa kanal bersamaan meski belum viral; ada potensi eskalasi.
+  Karakteristik: volume 4-10 artikel; cross-platform seeding; kesamaan framing/terminologi mulai muncul; engagement rendah-sedang; sentimen bergeser negatif/kritis; mulai ada salah persepsi; belum ada amplifikasi mainstream/tokoh.
 
-MEDIUM — Pemantauan harian, penerbitan klarifikasi resmi lewat kanal pemerintah,
-  koordinasi antar unit humas. Volume tinggi & konsisten beberapa hari, masuk media
-  digital menengah-atas, framing negatif mulai dominan, engagement meningkat, terbentuk
-  klaster opini pro-kontra, potensi salah tafsir kebijakan, mulai dikaitkan isu sensitif.
+[MEDIUM] Tindakan: Pemantauan harian, klarifikasi resmi via kanal pemerintah, koordinasi antar unit humas.
+  Definisi: Sudah jadi perbincangan publik terukur. Narasi keliru/disinformasi mulai mendapat traksi & bisa membentuk persepsi lebih luas.
+  Karakteristik: volume tinggi & konsisten beberapa hari; masuk media digital menengah-atas / akun follower signifikan; framing negatif mulai dominan; engagement meningkat; terbentuk klaster pro-kontra; potensi salah tafsir kebijakan; mulai dikaitkan isu sensitif (politisasi awal).
 
-HIGH — Respons reaktif terbatas: pernyataan resmi, konferensi pers terjadwal, siaran
-  pers menjawab poin spesifik, koordinasi pimpinan. Volume tinggi di media mainstream,
-  diamplifikasi tokoh berpengaruh, framing negatif/menyudutkan dominan, misinformasi
-  diterima luas, engagement sangat tinggi (marah/tidak percaya), muncul liputan
-  investigatif/pertanyaan legislatif. Waktu respons jadi kritis.
+[HIGH] Tindakan: Respons reaktif terbatas — pernyataan resmi, konferensi pers, siaran pers menjawab poin spesifik; koordinasi pimpinan.
+  Definisi: Perbincangan publik luas & perhatian media arus utama. Narasi berpotensi nyata merusak kepercayaan publik; perlu respons resmi terukur.
+  Karakteristik: volume tinggi di media mainstream & platform besar; diamplifikasi tokoh berpengaruh; framing negatif/menyudutkan/tuduhan dominan; misinformasi diterima luas; engagement sangat tinggi (marah/tuntutan klarifikasi); muncul liputan investigatif/pertanyaan legislatif; memengaruhi partisipasi publik; waktu respons kritis.
 
-VERY HIGH — Krisis komunikasi. Luncurkan counter-campaign terstruktur: narasi tandingan
-  komprehensif, mobilisasi juru bicara & mitra, kampanye edukasi multi-kanal, koordinasi
-  lintas K/L. Volume masif & berkelanjutan multi-platform, jadi agenda setting nasional,
-  indikasi coordinated inauthentic behavior, amplifikasi koalisi aktor, sentimen dominan
-  negatif + seruan aksi (demo/petisi/boikot), masuk ranah politik formal (interpelasi/
-  hearing DPR), kepercayaan publik turun terukur.
+[VERY HIGH] Tindakan: Counter-campaign terstruktur — narasi tandingan komprehensif, mobilisasi juru bicara & mitra, edukasi multi-kanal, koordinasi lintas K/L.
+  Definisi: Krisis komunikasi. Narasi dominan merusak reputasi institusi secara sistemik, mengganggu implementasi program, memicu tekanan publik/sosial/politik terorganisir.
+  Karakteristik: volume masif berkelanjutan multi-platform; agenda setting nasional; indikasi coordinated inauthentic behavior; amplifikasi koalisi aktor; sentimen dominan negatif + seruan aksi (demo/petisi/boikot); masuk ranah politik formal (interpelasi/hearing DPR); kepercayaan publik turun terukur; potensi dampak nyata ke kebijakan/keselamatan publik.
+</FRAMEWORK_ESKALASI>
 """
 
 
@@ -321,6 +362,47 @@ def _analysis_context(analysis: dict) -> str:
 # ANALISIS — mengacu kerangka TAHAP & DEFINISI ESKALASI (lebih dalam)
 # ---------------------------------------------------------------------------
 
+def _build_table_from_classification(classification: dict) -> list:
+    """
+    Susun TABEL 5 baris (satu per TAHAP, urut VERY LOW..VERY HIGH). Kolom
+    TAHAP & DEFINISI diisi dari LEVEL_DEFINITIONS (teks baku SOP); ARTIKEL &
+    SARAN INFORMASI diambil dari hasil klasifikasi model.
+    """
+    classification = classification or {}
+    # normalisasi kunci (VERY_LOW / very low / dst) -> bentuk baku
+    norm = {}
+    for key, value in classification.items():
+        k = str(key).upper().replace("_", " ").strip()
+        norm[k] = value
+
+    table = []
+    for level in ESCALATION_LEVELS:
+        entry = norm.get(level) or {}
+        artikel = entry.get("artikel") if isinstance(entry, dict) else None
+        if not isinstance(artikel, list):
+            artikel = []
+        artikel = [str(a).strip() for a in artikel if str(a).strip()]
+        saran = entry.get("saran_informasi") if isinstance(entry, dict) else ""
+        table.append(
+            {
+                "tahap": level,
+                "tindakan": LEVEL_DEFINITIONS[level]["tindakan"],
+                "definisi": LEVEL_DEFINITIONS[level]["definisi"],
+                "artikel": artikel,
+                "saran_informasi": str(saran or "").strip(),
+            }
+        )
+    return table
+
+
+def _highest_level_with_articles(table: list) -> str:
+    highest = "VERY LOW"
+    for row in table:
+        if row.get("artikel"):
+            highest = row["tahap"]  # table sudah urut menaik, jadi ini tahap tertinggi terisi
+    return highest
+
+
 def _fallback_analysis(topic_title: str, news_items: List[dict]) -> dict:
     """Analisis rule-based (dipakai kalau Gemini tidak tersedia / gagal parse)."""
     combined_text = " ".join(
@@ -362,14 +444,15 @@ def _fallback_analysis(topic_title: str, news_items: List[dict]) -> dict:
         risk_level = "rendah"
 
     all_titles = [item.get("title", "") for item in news_items if item.get("title")]
-    escalation_table = [
+    # Semua judul dimasukkan ke tahap hasil estimasi; tahap lain kosong.
+    table = _build_table_from_classification(
         {
-            "tahap": level,
-            "definisi": f"Estimasi otomatis: pemberitaan berada pada tahap {level} berdasarkan volume ({volume} artikel) dan sinyal sentimen.",
-            "artikel": all_titles,
-            "saran_informasi": "Kumpulkan data/rilis resmi terbaru terkait topik ini untuk memperkuat narasi tandingan.",
+            level: {
+                "artikel": all_titles,
+                "saran_informasi": "Kumpulkan data/rilis resmi terbaru terkait topik ini untuk memperkuat narasi tandingan.",
+            }
         }
-    ]
+    )
 
     summary = (
         f"Ditemukan {volume} berita terkait '{topic_title}'. Sentimen dominan: {sentiment}. "
@@ -394,11 +477,8 @@ def _fallback_analysis(topic_title: str, news_items: List[dict]) -> dict:
         "details": {
             "escalation_level": level,
             "escalation_reasoning": f"Estimasi rule-based dari {volume} artikel dan {negatives} sinyal negatif.",
-            "escalation_table": escalation_table,
-            "narrative_analysis": (
-                "Analisis ringkas (mode fallback tanpa AI). Untuk analisis mendalam sesuai kerangka eskalasi, "
-                "pastikan GEMINI_API_KEY & nama model valid."
-            ),
+            "escalation_table": table,
+            "narrative_analysis": "",
             "kontra_opini": {"judul": "", "isi": ""},
             "generated_by": "rule-based-fallback",
         },
@@ -406,31 +486,57 @@ def _fallback_analysis(topic_title: str, news_items: List[dict]) -> dict:
 
 
 def build_analysis_prompt(topic_title: str, news_items: List[dict]) -> str:
-    """Prompt analisis mendalam berbasis SOP monitoring & kerangka eskalasi."""
+    """
+    Prompt analisis = system prompt INSTRUKSI (ROLE/TUGAS/ATURAN/FRAMEWORK) yang diminta
+    user, dengan "file berita" diisi dari judul+URL hasil crawling/selected di topik.
+    Output diminta sebagai JSON supaya bisa dirender jadi TABEL 3 kolom + artikel kontra opini.
+    """
     return f"""
-ROLE: Kamu adalah pranata humas jurnalis senior ahli komunikasi publik pada kantor humas
-instansi pemerintah yang bertugas memonitor pemberitaan program pemerintah. Lakukan analisis
-mendalam atas kumpulan JUDUL berita berikut untuk topik: "{topic_title}".
+<INSTRUKSI>
+<ROLE> Kamu adalah seorang pranata humas jurnalis senior ahli komunikasi publik pada kantor humas
+instansi pemerintah yang bertugas melakukan monitoring pemberitaan berbagai program pemerintah.
+Lakukan analisis pada setiap JUDUL artikel dalam DAFTAR BERITA di bawah (topik: "{topic_title}"). </ROLE>
+
+<TUGAS>
+<langkah id="1"> Temukan dan golongkan JUDUL yang memiliki isi dan sudut pandangnya hampir sama. </langkah>
+<langkah id="2"> Masukkan JUDUL yang sudah digolongkan ke dalam kolom ARTIKEL sesuai TAHAP & DEFINISI ESKALASI
+  yang sesuai (pastikan SELURUH JUDUL dimasukkan — jangan sampai ada JUDUL yang tidak dimasukkan). </langkah>
+<langkah id="3"> Lakukan monitoring pemberitaan 1 minggu terakhir sesuai tema/isu JUDUL terkait, temukan dan
+  tabulasi informasi yang bisa dipakai menyusun artikel kontra opini, tuliskan ke kolom SARAN INFORMASI
+  sesuai JUDUL yang dikontra. </langkah>
+<langkah id="4"> Buat artikel kontra opini untuk isu dalam JUDUL yang masuk KOLOM ARTIKEL dengan TAHAP
+  TERTINGGI, mengacu URL terkait; artikel baru harus relevan & tajam. </langkah>
+</TUGAS>
+
+<ATURAN_PENULISAN_ARTIKEL>
+- Judul artikel baru WAJIB meng-kontra HEAD-to-HEAD dengan judul yang dikontra, kosakata & gaya bahasa bombastis penuh click bait.
+- Sentuh & beri atensi ke setiap isu yang disebut dalam artikel tersebut, jangan ada yang terlewat.
+- Bahasa & gaya isi artikel HARUS resmi-populer, menarik bagi kalangan muda, tetap elegan, sopan, sesuai etika jurnalistik.
+- Format artikel pada umumnya: beberapa paragraf pendek yang kohesif & saling berhubungan, TANPA numbering/bullet/multilevel list.
+- Sebut nama & kutipan pendapat tokoh yang dikontra, diikuti logika/alasan mengapa pendapat itu tidak tepat.
+- Masukkan beberapa kutipan/pendapat tokoh publik relevan yang mendukung urgensi isu (WAJIB sebut nama tokoh).
+- Cari alasan/hal yang mendukung program akan berhasil; tambahkan disertai ungkapan optimisme bahwa isu dalam JUDUL akan berhasil & bermanfaat sebesar-besarnya bagi bangsa Indonesia.
+</ATURAN_PENULISAN_ARTIKEL>
 
 {ESCALATION_FRAMEWORK}
 
-DAFTAR JUDUL/BERITA YANG DIANALISIS:
+<DAFTAR_BERITA> (hasil crawling/pilihan pada topik — inilah "file" yang dianalisis)
 {_format_news_for_prompt(news_items)}
+</DAFTAR_BERITA>
 
-TUGAS:
-1. Golongkan judul-judul yang isi & sudut pandangnya mirip.
-2. Klasifikasikan setiap judul ke TAHAP eskalasi yang paling sesuai (VERY LOW..VERY HIGH).
-   Pastikan SELURUH judul masuk ke salah satu tahap, jangan ada yang terlewat.
-3. Untuk tiap tahap yang terisi, tuliskan SARAN INFORMASI: data/fakta/rilis resmi yang bisa
-   dipakai menyusun narasi tandingan/kontra opini yang relevan.
-4. Tentukan TAHAP tertinggi yang muncul, lalu tulis satu artikel kontra opini yang tajam dan
-   relevan untuk isu di tahap tertinggi tersebut. Judul artikel harus meng-kontra head-to-head,
-   gaya bahasa resmi-populer, menarik untuk anak muda, elegan & sesuai etika jurnalistik,
-   beberapa paragraf pendek yang kohesif TANPA numbering/bullet, sebut & bantah pendapat tokoh
-   yang dikontra dengan alasan logis, sertakan optimisme bahwa program akan berhasil.
-
-WAJIB kembalikan HANYA JSON valid (tanpa penjelasan lain) dengan struktur persis berikut:
+<FORMAT_OUTPUT>
+Kembalikan HANYA JSON valid (tanpa teks lain). "classification" = hasil pengisian kolom ARTIKEL & SARAN
+INFORMASI untuk KELIMA tahap (judul yang tidak masuk suatu tahap tetap harus muncul di tahap lain —
+seluruh judul wajib terklasifikasi). "kontra_opini" = artikel Langkah 4 untuk tahap tertinggi yang terisi.
 {{
+  "classification": {{
+    "VERY LOW":  {{ "artikel": ["judul...", "..."], "saran_informasi": "data/fakta/rilis resmi untuk kontra opini" }},
+    "LOW":       {{ "artikel": [], "saran_informasi": "" }},
+    "MEDIUM":    {{ "artikel": [], "saran_informasi": "" }},
+    "HIGH":      {{ "artikel": [], "saran_informasi": "" }},
+    "VERY HIGH": {{ "artikel": [], "saran_informasi": "" }}
+  }},
+  "highest_level": "VERY LOW|LOW|MEDIUM|HIGH|VERY HIGH",
   "sentiment": "positif|netral|negatif",
   "risk_level": "rendah|sedang|sedang-tinggi|tinggi",
   "dominant_narrative": "kalimat narasi dominan yang beredar",
@@ -438,30 +544,21 @@ WAJIB kembalikan HANYA JSON valid (tanpa penjelasan lain) dengan struktur persis
   "recommended_action": "amplifikasi|klarifikasi_fakta",
   "action_reasoning": "alasan singkat pemilihan tindakan",
   "suggested_angles": ["angle 1", "angle 2", "angle 3", "angle 4"],
-  "escalation_level": "VERY LOW|LOW|MEDIUM|HIGH|VERY HIGH",
-  "escalation_reasoning": "alasan penetapan tahap tertinggi",
-  "escalation_table": [
-    {{
-      "tahap": "VERY LOW|LOW|MEDIUM|HIGH|VERY HIGH",
-      "definisi": "definisi/tindakan singkat tahap ini",
-      "artikel": ["judul yang masuk tahap ini", "..."],
-      "saran_informasi": "data/fakta/rilis resmi untuk narasi tandingan"
-    }}
-  ],
-  "narrative_analysis": "analisis naratif mendalam 1-3 paragraf tentang pola framing, aktor, dan trajektori isu",
   "kontra_opini": {{
-    "judul": "judul artikel kontra opini untuk tahap tertinggi",
-    "isi": "isi artikel beberapa paragraf pendek, tanpa bullet/numbering"
+    "judul": "judul artikel kontra opini (bombastis, head-to-head)",
+    "isi": "isi artikel beberapa paragraf pendek, tanpa bullet/numbering, sesuai ATURAN_PENULISAN_ARTIKEL"
   }}
 }}
+</FORMAT_OUTPUT>
+</INSTRUKSI>
 """
 
 
 def generate_analysis(topic_title: str, news_items: List[dict]) -> dict:
     """
-    Analisis kumpulan berita untuk satu topik memakai Gemini + kerangka TAHAP & DEFINISI
-    ESKALASI. Kalau Gemini tidak tersedia / gagal, jatuh ke analisis rule-based supaya
-    aplikasi tetap jalan. Selalu mengembalikan field backward-compatible + `details`.
+    Analisis kumpulan berita untuk satu topik memakai Gemini + system prompt INSTRUKSI
+    (kerangka TAHAP & DEFINISI ESKALASI). Kalau Gemini tidak tersedia / gagal, jatuh ke
+    analisis rule-based. Selalu mengembalikan field backward-compatible + `details`.
     """
     fallback = _fallback_analysis(topic_title, news_items)
     if not USE_REAL_GEMINI:
@@ -480,17 +577,18 @@ def generate_analysis(topic_title: str, news_items: List[dict]) -> dict:
     if action not in ALLOWED_ACTIONS:
         action = fallback["recommended_action"]
 
-    level = str(parsed.get("escalation_level", "")).upper().strip()
-    if level not in ESCALATION_LEVELS:
-        level = fallback["details"]["escalation_level"]
-
     suggested_angles = parsed.get("suggested_angles")
     if not isinstance(suggested_angles, list) or not suggested_angles:
         suggested_angles = fallback["suggested_angles"]
 
-    escalation_table = parsed.get("escalation_table")
-    if not isinstance(escalation_table, list) or not escalation_table:
-        escalation_table = fallback["details"]["escalation_table"]
+    table = _build_table_from_classification(parsed.get("classification"))
+    # kalau model tidak mengklasifikasi apa pun, pakai tabel fallback biar tidak kosong
+    if not any(row["artikel"] for row in table):
+        table = fallback["details"]["escalation_table"]
+
+    level = str(parsed.get("highest_level", "")).upper().replace("_", " ").strip()
+    if level not in ESCALATION_LEVELS:
+        level = _highest_level_with_articles(table)
 
     kontra = parsed.get("kontra_opini")
     if not isinstance(kontra, dict):
@@ -507,7 +605,7 @@ def generate_analysis(topic_title: str, news_items: List[dict]) -> dict:
         "details": {
             "escalation_level": level,
             "escalation_reasoning": parsed.get("escalation_reasoning", ""),
-            "escalation_table": escalation_table,
+            "escalation_table": table,
             "narrative_analysis": parsed.get("narrative_analysis", ""),
             "kontra_opini": kontra,
             "generated_by": "gemini",

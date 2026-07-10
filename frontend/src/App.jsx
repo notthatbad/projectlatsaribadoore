@@ -602,20 +602,27 @@ function App() {
                       <div className="table-scroll">
                         <table className="escalation-table">
                           <thead>
-                            <tr><th>Tahap</th><th>Artikel</th><th>Saran Informasi</th></tr>
+                            <tr><th>TAHAP &amp; DEFINISI ESKALASI</th><th>ARTIKEL</th><th>SARAN INFORMASI</th></tr>
                           </thead>
                           <tbody>
                             {details.escalation_table.map((row, i) => {
                               const meta = ESCALATION_META[String(row.tahap).toUpperCase()] || { label: row.tahap, className: '' };
+                              const artikel = row.artikel || [];
                               return (
                                 <tr key={i}>
-                                  <td><span className={`esc-chip ${meta.className}`}>{meta.label}</span></td>
-                                  <td>
-                                    <ul className="tight-list">
-                                      {(row.artikel || []).map((a, j) => <li key={j}>{a}</li>)}
-                                    </ul>
+                                  <td className="esc-def-cell">
+                                    <span className={`esc-chip ${meta.className}`}>{meta.label}</span>
+                                    {row.tindakan && <p className="esc-tindakan"><strong>Tindakan:</strong> {row.tindakan}</p>}
+                                    {row.definisi && <p className="esc-definisi">{row.definisi}</p>}
                                   </td>
-                                  <td className="prewrap">{row.saran_informasi}</td>
+                                  <td>
+                                    {artikel.length > 0 ? (
+                                      <ul className="tight-list">
+                                        {artikel.map((a, j) => <li key={j}>{a}</li>)}
+                                      </ul>
+                                    ) : <span className="muted-text">—</span>}
+                                  </td>
+                                  <td className="prewrap">{row.saran_informasi || <span className="muted-text">—</span>}</td>
                                 </tr>
                               );
                             })}
