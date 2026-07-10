@@ -567,16 +567,20 @@ function App() {
         )}
 
         {activeTab === 'analysis' && (
-          <div className="form-grid">
+          <div className="analysis-tab">
             <div className="panel">
-              <h3>4-5. Analisis & Eskalasi Pemberitaan</h3>
-              <p className="hint">Berdasarkan {selectedNewsIds.length} berita terpilih di tab "Cari Berita". Mengacu kerangka TAHAP &amp; DEFINISI ESKALASI (VERY LOW → VERY HIGH).</p>
-              <button className="primary-btn" onClick={handleRunAnalysis} disabled={analyzing}>
-                {analyzing ? 'Menganalisis...' : 'Jalankan Analisis'}
-              </button>
+              <div className="analysis-head">
+                <div>
+                  <h3>4-5. Analisis & Eskalasi Pemberitaan</h3>
+                  <p className="hint">Berdasarkan {selectedNewsIds.length} berita terpilih di tab "Cari Berita". Mengacu kerangka TAHAP &amp; DEFINISI ESKALASI (VERY LOW → VERY HIGH).</p>
+                </div>
+                <button className="primary-btn" onClick={handleRunAnalysis} disabled={analyzing}>
+                  {analyzing ? 'Menganalisis...' : 'Jalankan Analisis'}
+                </button>
+              </div>
 
               {latestAnalysis && (
-                <div className="analysis-container">
+                <div className="analysis-grid">
                   <div className={`escalation-banner ${escalationMeta.className}`}>
                     <span className="escalation-label">Tahap Eskalasi</span>
                     <strong className="escalation-level">{escalationMeta.label}</strong>
@@ -589,15 +593,28 @@ function App() {
                     <p className="muted-text"><strong>Narasi dominan:</strong> {latestAnalysis.dominant_narrative} · <strong>Sentimen:</strong> {latestAnalysis.sentiment} · <strong>Risiko:</strong> {latestAnalysis.risk_level}</p>
                   </div>
 
+                  <div className="analysis-card analysis-card-action">
+                    <h3>🎯 Rekomendasi Tindakan</h3>
+                    <p><strong>{latestAnalysis.recommended_action === 'amplifikasi' ? 'Amplifikasi (Glorifikasi)' : 'Klarifikasi Fakta'}</strong></p>
+                    <p>{latestAnalysis.action_reasoning}</p>
+                  </div>
+
+                  <div className="analysis-card analysis-card-angle">
+                    <h3>📐 Angle yang Disarankan</h3>
+                    <ul className="tight-list">
+                      {(latestAnalysis.suggested_angles || []).map((a, i) => <li key={i}>{a}</li>)}
+                    </ul>
+                  </div>
+
                   {details.narrative_analysis && (
-                    <div className="analysis-card">
+                    <div className="analysis-card grid-full">
                       <h3>🧭 Analisis Naratif</h3>
                       <p className="prewrap">{details.narrative_analysis}</p>
                     </div>
                   )}
 
                   {Array.isArray(details.escalation_table) && details.escalation_table.length > 0 && (
-                    <div className="analysis-card">
+                    <div className="analysis-card grid-full">
                       <h3>🗂️ Tabel Eskalasi &amp; Saran Informasi</h3>
                       <div className="table-scroll">
                         <table className="escalation-table">
@@ -632,21 +649,8 @@ function App() {
                     </div>
                   )}
 
-                  <div className="analysis-card analysis-card-action">
-                    <h3>🎯 Rekomendasi Tindakan</h3>
-                    <p><strong>{latestAnalysis.recommended_action === 'amplifikasi' ? 'Amplifikasi (Glorifikasi)' : 'Klarifikasi Fakta'}</strong></p>
-                    <p>{latestAnalysis.action_reasoning}</p>
-                  </div>
-
-                  <div className="analysis-card analysis-card-angle">
-                    <h3>📐 Angle yang Disarankan</h3>
-                    <ul className="tight-list">
-                      {(latestAnalysis.suggested_angles || []).map((a, i) => <li key={i}>{a}</li>)}
-                    </ul>
-                  </div>
-
                   {details.kontra_opini && (details.kontra_opini.judul || details.kontra_opini.isi) && (
-                    <div className="analysis-card analysis-card-kontra">
+                    <div className="analysis-card analysis-card-kontra grid-full">
                       <h3>📰 Draf Artikel Kontra Opini (tahap tertinggi)</h3>
                       {details.kontra_opini.judul && <h4>{details.kontra_opini.judul}</h4>}
                       <p className="prewrap">{details.kontra_opini.isi}</p>
@@ -654,15 +658,16 @@ function App() {
                   )}
 
                   {details.generated_by && details.generated_by !== 'gemini' && (
-                    <p className="muted-text">⚠️ Analisis dibuat mode fallback ({details.generated_by}). {details.ai_error || 'Pastikan GEMINI_API_KEY & nama model valid untuk analisis mendalam.'}</p>
+                    <p className="muted-text grid-full">⚠️ Analisis dibuat mode fallback ({details.generated_by}). {details.ai_error || 'Pastikan GEMINI_API_KEY & nama model valid untuk analisis mendalam.'}</p>
                   )}
                 </div>
               )}
             </div>
+
             <div className="panel">
               <h3>Riwayat analisis topik ini</h3>
               {analyses.length === 0 ? <p>Belum ada riwayat.</p> : (
-                <div className="topic-list">
+                <div className="history-grid">
                   {analyses.map((a) => (
                     <div key={a.id} className="topic-item">
                       <strong>{(a.details?.escalation_level) || '-'} · {a.recommended_action === 'amplifikasi' ? 'Amplifikasi' : 'Klarifikasi Fakta'} · {a.sentiment}</strong>

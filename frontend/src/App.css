@@ -457,11 +457,35 @@ details ul {
 .mini-btn.primary { background: var(--accent); color: #041018; font-weight: 700; }
 .mini-btn:hover { border-color: var(--accent); }
 
+/* --- Layout analisis: fleksibel, tidak menjulur ke bawah --- */
+.analysis-tab { display: flex; flex-direction: column; gap: 18px; }
+.analysis-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.analysis-head .primary-btn { white-space: nowrap; flex-shrink: 0; }
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+  margin-top: 16px;
+}
+.analysis-grid .grid-full { grid-column: 1 / -1; }
+.analysis-grid .analysis-card { margin: 0; }
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
 /* --- Banner & tabel eskalasi --- */
 .escalation-banner {
   border-radius: 14px;
   padding: 14px 16px;
-  margin-bottom: 12px;
   border: 1px solid var(--border);
   background: rgba(10, 19, 38, 0.6);
 }
@@ -473,9 +497,10 @@ details ul {
 }
 .escalation-banner .escalation-level {
   display: block;
-  font-size: 24px;
+  font-size: 20px;
   margin: 2px 0 6px;
 }
+.analysis-card p + p { margin-top: 8px; }
 .escalation-banner p { margin: 0; font-size: 13px; color: var(--muted); }
 .esc-verylow { border-color: rgba(44,245,176,0.5); box-shadow: inset 0 0 0 1px rgba(44,245,176,0.15); }
 .esc-low { border-color: rgba(120,220,120,0.5); }
